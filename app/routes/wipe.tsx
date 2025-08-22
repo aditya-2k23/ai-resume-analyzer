@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
+import Navbar from "~/components/Navbar";
 import { usePuterStore } from "~/lib/puter";
 
 const WipeApp = () => {
   const { auth, isLoading, error, fs, kv } = usePuterStore();
   const navigate = useNavigate();
   const [files, setFiles] = useState<FSItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   const loadFiles = async () => {
     const files = (await fs.readDir("./")) as FSItem[];
@@ -23,11 +26,17 @@ const WipeApp = () => {
   }, [isLoading]);
 
   const handleDelete = async () => {
+    setLoading(true);
     files.forEach(async (file) => {
       await fs.delete(file.path);
     });
     await kv.flush();
     loadFiles();
+    setLoading(false);
+    setSuccess(true);
+    setTimeout(() => {
+      setSuccess(false);
+    }, 3000)
   };
 
   if (isLoading) {
@@ -40,6 +49,7 @@ const WipeApp = () => {
 
   return (
     <div className="flex flex-col items-center justify-center gap-4 p-4">
+      <Navbar />
       Authenticated as: {auth.user?.username}
       <div>Existing files:</div>
       <div className="flex flex-col gap-4">
@@ -49,13 +59,14 @@ const WipeApp = () => {
           </div>
         ))}
       </div>
-      <div>
+      <div className="flex flex-col gap-4">
         <button
           className="bg-blue-500 text-white px-4 py-2 rounded-md cursor-pointer"
           onClick={() => handleDelete()}
         >
-          Wipe App Data
+          {loading ? "Deleting..." : "Delete"}
         </button>
+        {success && <div className="text-green-700">Files successfully deleted</div>}
       </div>
     </div>
   );
